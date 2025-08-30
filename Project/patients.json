@@ -1,0 +1,7 @@
+{
+    "P001": {"name": "abc", "city": "xyz", "age": 30, "gender": "male", "height":1.65, "weight": 70, "bmi": 33.06, "verdict": "Obese"},
+    "P002": {"name": "def", "city": "uvw", "age": 25, "gender": "female", "height":1.70, "weight": 60, "bmi": 20.76, "verdict": "Normal"},
+    "P003": {"name": "ghi", "city": "rst", "age": 40, "gender": "male", "height":1.80, "weight": 90, "bmi": 27.78, "verdict": "Overweight"},
+    "P004": {"name": "jkl", "city": "opq", "age": 35, "gender": "female", "height":1.65, "weight": 55, "bmi": 20.20, "verdict": "Normal"},
+    "P005": {"name": "mno", "city": "stu", "age": 28, "gender": "male", "height":1.75, "weight": 80, "bmi": 26.12, "verdict": "Overweight"}
+}
