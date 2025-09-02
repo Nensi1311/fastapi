@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, computed_field
-from typing import Literal, Annotated
+from pydantic import BaseModel, Field, computed_field, field_validator
+from typing import Literal, Annotated, Dict
 import pickle
 import pandas as pd
 
@@ -33,6 +33,13 @@ class UserInput(BaseModel):
     Smoker: Annotated[bool, Field(..., description="Is the user a smoker?")]
     City: Annotated[str, Field(..., description="City of the user")]
     Occupation: Annotated[Literal['Teacher', 'Clerk', 'Lawyer', 'Engineer', 'Doctor', 'Manager'], Field(..., description="Occupation of the user")]
+
+
+    @field_validator('City')
+    @classmethod
+    def normalize_city(cls, v: str) -> str:
+        v = v.strip().title()
+        return v
 
 
     @computed_field
@@ -74,10 +81,42 @@ class UserInput(BaseModel):
             return 2
         else:
             return 3
-        
 
 
-@app.post('/predict')
+
+class PredictionResponse(BaseModel):
+    Predicted_Category: str = Field(
+        ..., description="Predicted insurance premium category",
+        example="Medium"
+    )
+    Confidence: float = Field(
+        ..., description="Model's confidence score for the predicted class (range: 0 to 1)",
+        example=0.85
+    )
+    Class_Probabilities: Dict[str, float] = Field(
+        ..., description="Class probabilities for each category",
+        example={"Low": 0.1, "Medium": 0.15, "High": 0.85}
+    )
+
+
+# human readable
+@app.get('/')
+def home():
+    return {"message": "Welcome to the Insurance Premium Prediction API"}
+
+
+# machine readable
+@app.get('/health')
+def health_check():
+    return {
+        "Status": "Done",
+        "Model Loaded": model is not None
+    }
+
+
+class_labels = model.classes_.tolist()
+
+@app.post('/predict', response_model=PredictionResponse)
 def predict_premium(data: UserInput):
     input_df = pd.DataFrame([{
         'BMI': data.bmi,
@@ -88,6 +127,14 @@ def predict_premium(data: UserInput):
         'Occupation': data.Occupation
     }])
 
-    prediction = model.predict(input_df)[0]
 
-    return JSONResponse(status_code=200, content={"predicted_category": prediction})
+    try: 
+        prediction = model.predict(input_df)[0]
+        probabilities = model.predict_proba(input_df)[0]
+        confidence = max(probabilities)
+        class_probs = dict(zip(class_labels, map(lambda p: round(p, 4), probabilities)))
+        return JSONResponse(status_code=200, content={"Response": prediction, "Confidence": round(confidence, 2), "Class Probabilities": class_probs})
+
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
